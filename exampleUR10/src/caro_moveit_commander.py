@@ -73,4 +73,6 @@ if __name__ == '__main__':
     
     ur10_commander.execute_plan(plan1)
 
+    carotest = "please delete" 
+
 
