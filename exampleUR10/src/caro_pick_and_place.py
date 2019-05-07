@@ -28,10 +28,10 @@ class PickAndPlace (object):
         self.position2 = position2
         self.go_to_home_position()           
         self.ur10_commander.add_box(self.position1.pose.position.x, self.position1.pose.position.y, self.position1.pose.position.z )
+        time.sleep (5)     
+        self.go_to_pregrasp_position(self.position1)
         time.sleep (5)
-        self.box_pose=self.ur10_commander.box_pose
         self.ur10_commander.remove_box()
-        self.go_to_pregrasp_position(self.box_poser10)
 
 
     def go_to_home_position(self): 
@@ -47,26 +47,31 @@ class PickAndPlace (object):
 
         self.ur10_commander.execute_plan(plan_with_joints)
 
-    def go_to_pregrasp_position (object_pose, pregrasp_distance=0.3):
+
+    def go_to_pregrasp_position (self, object_pose, pregrasp_distance=0.3):
         """ It should be already a box added to the scene"""
-        
-        if type (object_pose) is not geometry_msgs.msg.PoseStamped(): 
+          
+        if type (object_pose) is not type (geometry_msgs.msg.PoseStamped()): 
             rospy.logerr ( "The object pose should be a geometry_msgs.msg.PoseStamped()")
             return 
 
         else:  
-            wpose = object_pose
-            wpose.pose.position.z += 0.3 #Go to 30 cm above the box 
-            plan_to_pregraps= self.ur10_commander.plan_to_pose_target (object_pose.pose.position.x, object_pose.pose.position.y, object_pose.pose.position.z, object_pose.pose.orientation.x, object_pose.pose.orientation.y, object_pose.pose.orientation.z, object_pose.pose.orientation.w)    
+            wpose = copy.deepcopy(object_pose)
+            wpose.pose.position.z += 0.5 #Go to 30 cm above the box 
+            wpose.pose.orientation.x = 0
+            wpose.pose.orientation.y= 1
+            wpose.pose.orientation.z = 0
+            wpose.pose.orientation.w =0
+            plan_to_pregraps= self.ur10_commander.plan_to_pose_target (wpose.pose.position.x, wpose.pose.position.y, wpose.pose.position.z, wpose.pose.orientation.x, wpose.pose.orientation.y, wpose.pose.orientation.z, wpose.pose.orientation.w)    
 
-            if len(plan_to_pos3.joint_trajectory.points)>0: 
+            if len(plan_to_pregraps.joint_trajectory.points)>0: 
                 print "Plan to pregrasp"
                 raw_input("if Plan is ok. press enter to execute")
 
             else: 
                 rospy.logerr ( "Fail to make pregrasp plan")
 
-            ur10_commander.execute_plan(plan_to_pregraps)
+            self.ur10_commander.execute_plan(plan_to_pregraps)
 
 
 
@@ -85,6 +90,8 @@ if __name__ == '__main__':
     position1.pose.position.x = 0.92
     position1.pose.position.y = 0.36
     position1.pose.position.z = 0.25
+    position1.orientation.w = 1
+   # print position1
     
     position2= geometry_msgs.msg.PoseStamped()
     pick_and_place1 = PickAndPlace(position1, position2)
