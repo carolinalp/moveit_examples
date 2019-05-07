@@ -31,7 +31,7 @@ class PickAndPlace (object):
         time.sleep (5)
         self.box_pose=self.ur10_commander.box_pose
         self.ur10_commander.remove_box()
-        self.go_to_pregrasp_position(self.box_pose)
+        self.go_to_pregrasp_position(self.box_poser10)
 
 
     def go_to_home_position(self): 
