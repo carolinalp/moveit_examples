@@ -28,11 +28,13 @@ class PickAndPlace (object):
         self.position2 = position2
         self.go_to_home_position()           
         self.ur10_commander.add_box(self.position1.pose.position.x, self.position1.pose.position.y, self.position1.pose.position.z )
-        time.sleep (5)     
+        time.sleep (2)         
         self.go_to_pregrasp_position(self.position1)
-        time.sleep (5)
+        time.sleep (2)
+        self.go_to_grasp_position()
+        time.sleep (5) 
         self.ur10_commander.remove_box()
-
+        
 
     def go_to_home_position(self): 
 
@@ -48,7 +50,7 @@ class PickAndPlace (object):
         self.ur10_commander.execute_plan(plan_with_joints)
 
 
-    def go_to_pregrasp_position (self, object_pose, pregrasp_distance=0.3):
+    def go_to_pregrasp_position (self, object_pose, pregrasp_distance=0.5):
         """ It should be already a box added to the scene"""
           
         if type (object_pose) is not type (geometry_msgs.msg.PoseStamped()): 
@@ -56,13 +58,13 @@ class PickAndPlace (object):
             return 
 
         else:  
-            wpose = copy.deepcopy(object_pose)
-            wpose.pose.position.z += 0.5 #Go to 30 cm above the box 
-            wpose.pose.orientation.x = 0
-            wpose.pose.orientation.y= 1
-            wpose.pose.orientation.z = 0
-            wpose.pose.orientation.w =0
-            plan_to_pregraps= self.ur10_commander.plan_to_pose_target (wpose.pose.position.x, wpose.pose.position.y, wpose.pose.position.z, wpose.pose.orientation.x, wpose.pose.orientation.y, wpose.pose.orientation.z, wpose.pose.orientation.w)    
+            pregrasp_pose  = copy.deepcopy(object_pose)
+            pregrasp_pose.pose.position.z += pregrasp_distance #Go to 50 cm above the box 
+            pregrasp_pose.pose.orientation.x = 0
+            pregrasp_pose.pose.orientation.y= 1
+            pregrasp_pose.pose.orientation.z = 0
+            pregrasp_pose.pose.orientation.w =0
+            plan_to_pregraps= self.ur10_commander.plan_to_pose_target (pregrasp_pose.pose.position.x, pregrasp_pose.pose.position.y, pregrasp_pose.pose.position.z, pregrasp_pose.pose.orientation.x, pregrasp_pose.pose.orientation.y, pregrasp_pose.pose.orientation.z, pregrasp_pose.pose.orientation.w)    
 
             if len(plan_to_pregraps.joint_trajectory.points)>0: 
                 print "Plan to pregrasp"
@@ -73,11 +75,31 @@ class PickAndPlace (object):
 
             self.ur10_commander.execute_plan(plan_to_pregraps)
 
+    def go_to_grasp_position(self, grasp_distance=0.21):
+        """ It should be already a box added to the scene"""
+        
+        waypoints = []
+            
+        grasp_pose= self.ur10_commander.group.get_current_pose().pose
+        grasp_pose.position.x = self.position1.pose.position.x
+        grasp_pose.position.y = self.position1.pose.position.y
+        grasp_pose.position.z = self.position1.pose.position.z + grasp_distance
+        waypoints.append(copy.deepcopy(grasp_pose))
+        (plan_to_grasp, fraction) = self.ur10_commander.group.compute_cartesian_path (waypoints,0.01,0.0)
 
+        if len(plan_to_grasp.joint_trajectory.points)>0: 
+                print "Plan to grasp"
+                print "Fraction =", fraction
+                raw_input("if Plan is ok. press enter to execute")
 
+        else: 
+            rospy.logerr ( "Fail to make pregrasp plan")
 
- 
+        self.ur10_commander.execute_plan(plan_to_grasp)
+        
+        
 
+        
 
 
 # # 1. Initialize
@@ -90,7 +112,7 @@ if __name__ == '__main__':
     position1.pose.position.x = 0.92
     position1.pose.position.y = 0.36
     position1.pose.position.z = 0.25
-    position1.orientation.w = 1
+    position1.pose.orientation.w = 1
    # print position1
     
     position2= geometry_msgs.msg.PoseStamped()
