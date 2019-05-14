@@ -1,13 +1,9 @@
 #!/usr/bin/env python
-
-import copy
 import sys
 import geometry_msgs.msg
 import moveit_commander
 import moveit_msgs.msg
 import rospy
-
-#=============================          CLASS          =================================
 
 
 class MoveCommanderUr10 (object): 
@@ -19,8 +15,7 @@ class MoveCommanderUr10 (object):
 
         # SETUP
         # Initialize the moveit commander
-        moveit_commander.roscpp_initialize (sys.argv) 
-        
+        moveit_commander.roscpp_initialize(sys.argv) 
         # Initiate a RobotCommander object
         self.robot_comm = moveit_commander.RobotCommander()
         # Initiate a Planning scene Interface object
@@ -37,8 +32,6 @@ class MoveCommanderUr10 (object):
         self.group_names = self.robot_comm.get_group_names()
         self.box_name = ""
         self.box_pose = geometry_msgs.msg.PoseStamped()    
-
-#===========================      PLAN       =========================================
 
     def plan_to_pose_target(self, position_x, position_y, position_z, orient_x, orient_y, orient_z, orient_w):
 
@@ -76,11 +69,9 @@ class MoveCommanderUr10 (object):
         
         self.group.execute(plan, wait=True)
 
-#============================       BOX     =============================================
-
     def add_box(self, position_x, position_y, position_z, timeout=4):
         """Adding Objects to the Planning Scene
-        position_x, position_y, position_z are floats. The position in the 
+        position_x, position_y, position_z are floats. The position in the
         planning scene where you want the box"""
         
         self.box_name = "box"
@@ -97,10 +88,8 @@ class MoveCommanderUr10 (object):
         touch_links = ["hand_base_attach"]
         self.scene_interface.attach_box(self.eef_link, self.box_name, touch_links=touch_links)
 
-    def detach_box(self, timeout=4):
-        
+    def detach_box(self, timeout=4): 
         self.scene_interface.remove_attached_object(self.eef_link, name=self.box_name)
-    
+
     def remove_box(self, timeout=4):
-        
         self.scene_interface.remove_world_object(self.box_name)

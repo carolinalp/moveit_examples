@@ -19,10 +19,11 @@ class PickAndPlace (object):
         self.position1 = position1
         self.position2 = position2
         time.sleep(2)
-        self.ur10_commander.add_box(self.position1.pose.position.x, self.position1.pose.position.y, self.position1.pose.position.z)
+        self.ur10_commander.add_box(self.position1.pose.position.x,
+                                    self.position1.pose.position.y,
+                                    self.position1.pose.position.z)
         time.sleep(2)
-        self.go_to_home_position()         
-        time.sleep(2)
+        self.go_to_home_position()
         self.go_to_pregrasp_position(self.position1)
         time.sleep(2)
         self.go_to_grasp_position(self.position1)
@@ -40,37 +41,35 @@ class PickAndPlace (object):
     def go_to_home_position(self):
 
         plan_with_joints = self.ur10_commander.go_to_joint_target(-0.03883398363815905, -1.5276687999544085, 1.5388371215293597, 3.1372948604019957, 0.039511801410542426, 3.134863975410523)
-    
         if len(plan_with_joints.joint_trajectory.points) == 0:
             
-            rospy.logerr("Fail to make a plan") 
+            rospy.logerr("Fail to make a plan")
             
-        print "Plan to home "
+        rospy.loginfo("Going home")
         self.ur10_commander.execute_plan(plan_with_joints)
 
     def go_to_pregrasp_position(self, object_pose, pregrasp_distance=0.5):
         """ It should be already a box added to the scene"""
           
-        if type(object_pose) is not type(geometry_msgs.msg.PoseStamped()):
+        if not isinstance(object_pose, geometry_msgs.msg.PoseStamped):
             rospy.logerr("The object pose should be a geometry_msgs.msg.PoseStamped()")
             return
+ 
+        pregrasp_pose = copy.deepcopy(object_pose)
+        pregrasp_pose.pose.position.z += pregrasp_distance
+        pregrasp_pose.pose.orientation.x = 0
+        pregrasp_pose.pose.orientation.y = 1
+        pregrasp_pose.pose.orientation.z = 0
+        pregrasp_pose.pose.orientation.w = 0
+        plan_to_pregraps = self.ur10_commander.plan_to_pose_target(pregrasp_pose.pose.position.x, pregrasp_pose.pose.position.y, pregrasp_pose.pose.position.z, pregrasp_pose.pose.orientation.x, pregrasp_pose.pose.orientation.y, pregrasp_pose.pose.orientation.z, pregrasp_pose.pose.orientation.w)    
 
+        if len(plan_to_pregraps.joint_trajectory.points) > 0:
+            rospy.loginfo("Going to Pregrasp position")
+            
         else:
-            pregrasp_pose = copy.deepcopy(object_pose)
-            pregrasp_pose.pose.position.z += pregrasp_distance
-            pregrasp_pose.pose.orientation.x = 0
-            pregrasp_pose.pose.orientation.y = 1
-            pregrasp_pose.pose.orientation.z = 0
-            pregrasp_pose.pose.orientation.w = 0
-            plan_to_pregraps = self.ur10_commander.plan_to_pose_target(pregrasp_pose.pose.position.x, pregrasp_pose.pose.position.y, pregrasp_pose.pose.position.z, pregrasp_pose.pose.orientation.x, pregrasp_pose.pose.orientation.y, pregrasp_pose.pose.orientation.z, pregrasp_pose.pose.orientation.w)    
+            rospy.logerr("Fail to make pregrasp plan")
 
-            if len(plan_to_pregraps.joint_trajectory.points) > 0:
-                print "Plan to pregrasp"
-               
-            else: 
-                rospy.logerr("Fail to make pregrasp plan")
-
-            self.ur10_commander.execute_plan(plan_to_pregraps)
+        self.ur10_commander.execute_plan(plan_to_pregraps)
 
     def go_to_grasp_position(self, object_pose, grasp_distance=0.21):
         """ It should be already a box added to the scene"""
@@ -85,48 +84,42 @@ class PickAndPlace (object):
         (plan_to_grasp, fraction) = self.ur10_commander.group.compute_cartesian_path(waypoints, 0.01, 0.0)
 
         if len(plan_to_grasp.joint_trajectory.points) > 0:
-            print "Plan to grasp"
-            print "Fraction =", fraction
-        else: 
+            rospy.loginfo("Going to Grasp position")
+            rospy.loginfo("Fraction = %s" % fraction)
+        else:
             rospy.logerr("Fail to make grasp plan")
 
         self.ur10_commander.execute_plan(plan_to_grasp)
         
     def move_box(self, place_pose, grasp_distance=0.21):
         
-        if type(place_pose) is not type(geometry_msgs.msg.PoseStamped()): 
+        # Test if place_pose is a poseStamped
+        if not isinstance(place_pose, geometry_msgs.msg.PoseStamped):
             rospy.logerr("The object pose should be a geometry_msgs.msg.PoseStamped()")
             return
 
-        else:
-            # Test if the box is attached
+        # Test if the box is attached
+        attached_objects = self.ur10_commander.scene_interface.get_attached_objects()
+        is_attached = len(attached_objects.keys()) > 0
+        if is_attached is True:
+            final_pose = copy.deepcopy(place_pose)
+            final_pose.pose.position.z += grasp_distance
+            final_pose.pose.orientation.x = 0
+            final_pose.pose.orientation.y = 1
+            final_pose.pose.orientation.z = 0
+            final_pose.pose.orientation.w = 0
 
-            attached_objects = self.ur10_commander.scene_interface.get_attached_objects()
-            is_attached = len(attached_objects.keys()) > 0
-        
-            if is_attached is True:
-                
-                final_pose = copy.deepcopy(place_pose)
-                final_pose.pose.position.z += grasp_distance
-                final_pose.pose.orientation.x = 0
-                final_pose.pose.orientation.y = 1
-                final_pose.pose.orientation.z = 0
-                final_pose.pose.orientation.w = 0
+            plan_to_final_pose = self.ur10_commander.plan_to_pose_target(final_pose.pose.position.x, final_pose.pose.position.y, final_pose.pose.position.z, final_pose.pose.orientation.x, final_pose.pose.orientation.y, final_pose.pose.orientation.z, final_pose.pose.orientation.w)    
 
-                plan_to_final_pose = self.ur10_commander.plan_to_pose_target(final_pose.pose.position.x, final_pose.pose.position.y, final_pose.pose.position.z, final_pose.pose.orientation.x, final_pose.pose.orientation.y, final_pose.pose.orientation.z, final_pose.pose.orientation.w)    
+            if len(plan_to_final_pose.joint_trajectory.points) > 0:
+                rospy.loginfo("Moving the box")
+            else:
+                rospy.logerr("Fail to make plan to pose")
 
-                if len(plan_to_final_pose.joint_trajectory.points) > 0:
-                    print "Plan to place"
-                else: 
-                    rospy.logerr("Fail to make plan to pose")
+            self.ur10_commander.execute_plan(plan_to_final_pose)
 
-                self.ur10_commander.execute_plan(plan_to_final_pose)
 
-# # 1. Initialize
-# #=========================================================================================================
-
-if __name__ == '__main__':
-    
+if __name__ == '__main__':  
     # Define the node
     rospy.init_node("move_commander_ur10", anonymous=True)
     # Position 1
