@@ -1,0 +1,4 @@
+.vscode
+
+# Python byte code
+*.pyc
