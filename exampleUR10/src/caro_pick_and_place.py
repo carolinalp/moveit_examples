@@ -74,6 +74,10 @@ class PickAndPlace (object):
     def go_to_grasp_position(self, object_pose, grasp_distance=0.21):
         """ It should be already a box added to the scene"""
 
+        if not isinstance(object_pose, geometry_msgs.msg.PoseStamped):
+            rospy.logerr("The object pose should be a geometry_msgs.msg.PoseStamped()")
+            return
+
         waypoints = []
         
         grasp_pose = self.ur10_commander.group.get_current_pose().pose
@@ -118,6 +122,9 @@ class PickAndPlace (object):
 
             self.ur10_commander.execute_plan(plan_to_final_pose)
 
+        else:
+            rospy.logerr("There is no object attached")
+
 
 if __name__ == '__main__':  
     # Define the node
@@ -135,3 +142,4 @@ if __name__ == '__main__':
     position2.pose.position.z = 0.25
     position2.pose.orientation.w = 1
     pick_and_place1 = PickAndPlace(position1, position2)
+    

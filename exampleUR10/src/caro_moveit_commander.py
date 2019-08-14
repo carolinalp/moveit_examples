@@ -11,7 +11,7 @@ class MoveCommanderUr10 (object):
 
     def __init__(self): 
 
-        super(MoveCommanderUr10, self).__init__()  # Is this necessary?
+    #    super(MoveCommanderUr10, self).__init__()  # Is this necessary?
 
         # SETUP
         # Initialize the moveit commander
@@ -92,4 +92,4 @@ class MoveCommanderUr10 (object):
         self.scene_interface.remove_attached_object(self.eef_link, name=self.box_name)
 
     def remove_box(self, timeout=4):
-        self.scene_interface.remove_world_object(self.box_name)
+        
