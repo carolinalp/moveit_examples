@@ -105,7 +105,7 @@ class PickAndPlace (object):
         # Test if the box is attached
         attached_objects = self.ur10_commander.scene_interface.get_attached_objects()
         is_attached = len(attached_objects.keys()) > 0
-        if is_attached is True:
+        if is_attached:
             final_pose = copy.deepcopy(place_pose)
             final_pose.pose.position.z += grasp_distance
             final_pose.pose.orientation.x = 0
