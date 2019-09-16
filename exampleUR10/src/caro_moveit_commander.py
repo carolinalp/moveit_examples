@@ -28,8 +28,9 @@ class MoveCommanderUr10 (object):
         self.planning_frame = self.group.get_planning_frame()
         self.eef_link = self.group.get_end_effector_link()
         self.group_names = self.robot_comm.get_group_names()
-        self.box_name = ""
-        self.box_pose = geometry_msgs.msg.PoseStamped()    
+        self.object_name = ""
+        self.object_pose = geometry_msgs.msg.PoseStamped()    
+        self.filename_mesh= ""
 
     def plan_to_pose_target(self, position_x, position_y, position_z, orient_x, orient_y, orient_z, orient_w):
 
@@ -67,28 +68,64 @@ class MoveCommanderUr10 (object):
         
         self.group.execute(plan, wait=True)
 
-    def add_box(self, position_x, position_y, position_z, timeout=4):
+    def add_object(self, object_name, position_x, position_y, position_z, timeout=4, filename_mesh= ""):
         """Adding Objects to the Planning Scene
+        object_name is a string. Can be "box", "sphere", "cilinder" or "mesh"
         position_x, position_y, position_z are floats. The position in the
         planning scene where you want the box"""
         
-        self.box_name = "box"
-
-        self.box_pose.header.frame_id = "world"
-        self.box_pose.pose.position.x = position_x
-        self.box_pose.pose.position.y = position_y
-        self.box_pose.pose.position.z = position_z
-        self.box_pose.pose.orientation.w = 1.0
+        self.filename_mesh= filename_mesh
+        self.object_pose.header.frame_id = "world"
+        self.object_pose.pose.position.x = position_x
+        self.object_pose.pose.position.y = position_y
+        self.object_pose.pose.position.z = position_z
+        self.object_pose.pose.orientation.w = 1.0
         
-        self.scene_interface.add_box(self.box_name, self.box_pose, size =(0.1, 0.1, 0.1))
+        if  object_name == "box":
 
-    def attach_box(self, timeout=4):
+            self.scene_interface.add_box(object_name, self.object_pose, size =(0.1, 0.1, 0.1))
+        
+        elif object_name =="sphere":
+            self.scene_interface.add_sphere(object_name,  self.object_pose, radius = 0.1)
+        
+        elif object_name =="mesh":
+            self.scene_interface.add_mesh(object_name,  self.object_pose, self.filename_mesh, size = (0.003, 0.003, 0.003))	
+
+        else:
+            rospy.logerr("Object_name not allowed, write \"box\", \"sphere\", \"cilinder\" or \"mesh\"")
+            return
+    
+    def is_an_object(self,object_name):
+            #self.scene_interface.get_objects()
+
+            #self.scene_interface.get_object_poses(self, object_ids)	
+            is_known = object_name in self.scene_interface.get_known_object_names()
+            return is_known
+    
+    def get_object_pose (self, object_name):
+
+            pose= self.scene_interface.get_object_poses([object_name])
+            return pose 
+            
+    def attach_object(self, object_name, timeout=4):
         touch_links = ["hand_base_attach"]
-        self.scene_interface.attach_box(self.eef_link, self.box_name, touch_links=touch_links)
+        
+        self.object_name = object_name
 
-    def detach_box(self, timeout=4): 
-        self.scene_interface.remove_attached_object(self.eef_link, name=self.box_name)
+        if self.object_name == "box":
+            self.scene_interface.attach_box(self.eef_link, self.object_name, touch_links=touch_links)
 
-    def remove_box(self, timeout=4):
-        self.scene_interface.remove_world_object(self.box_name)
+        elif self.object_name =="mesh":
+            self.scene_interface.attach_mesh(self.eef_link, self.object_name, self.filename_mesh, touch_links = touch_links)
+
+        else:
+            rospy.logerr("Object_name not allowed, write \"box\", \"sphere\", \"cilinder\" or \"mesh\"")
+            return
+    
+    def detach_object(self, timeout=4): 
+
+        self.scene_interface.remove_attached_object(self.eef_link, name=self.object_name)
+
+    def remove_object(self, object_name, timeout=4):
+        self.scene_interface.remove_world_object(object_name)
         
