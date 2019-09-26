@@ -21,7 +21,7 @@ class PickAndPlace (object):
         self.position_pick = geometry_msgs.msg.PoseStamped()
 
         if self.ur10_commander.is_an_object(self.object_name):
-            self.position_pick = self.pose_stamped(object_name)
+            self.position_pick = self.get_object_pose_stamped(object_name)
             self.go_to_home_position()
             self.go_to_pregrasp_position(self.position_pick)
             time.sleep(0.5)
@@ -39,17 +39,10 @@ class PickAndPlace (object):
         else:
             rospy.logerr("There is no object called " + object_name + " in the scene")                            
         
-    def pose_stamped(self,object_name):
+    def get_object_pose_stamped(self,object_name):
         pose_object = self.ur10_commander.get_object_pose(object_name)[object_name] # ur10_commander_ex1.get_object_pose("box")["box"]
-        pose_stamped = geometry_msgs.msg.PoseStamped()
-        pose_stamped.pose.position.x = pose_object.position.x
-        pose_stamped.pose.position.y = pose_object.position.y
-        pose_stamped.pose.position.z = pose_object.position.z
-        pose_stamped.pose.orientation.x = pose_object.orientation.x
-        pose_stamped.pose.orientation.y = pose_object.orientation.y
-        pose_stamped.pose.orientation.z = pose_object.orientation.z
-        pose_stamped.pose.orientation.w = pose_object.orientation.w
-
+        pose_stamped = self.ur10_commander.pose_stamped(pose_object)
+        
         return pose_stamped
 
     def go_to_home_position(self):
@@ -145,70 +138,42 @@ if __name__ == '__main__':
     rospy.init_node("move_commander_ur10", anonymous=True)
     # Position 1
     position1 = geometry_msgs.msg.PoseStamped() 
-    position1.pose.position.x = 0.92
-    position1.pose.position.y = 0.5
-    position1.pose.position.z = 0.25
+    position1.pose.position.x = 0.9
+    position1.pose.position.y = 0.3
+    position1.pose.position.z = 0.82
     position1.pose.orientation.w = 1
     # Position 2
     position2 = geometry_msgs.msg.PoseStamped()
-    position2.pose.position.x = position1.pose.position.x - 0.4
-    position2.pose.position.y = position1.pose.position.y 
-    position2.pose.position.z = position1.pose.position.z
+    position2.pose.position.x = 0.6
+    position2.pose.position.y = 0.3 
+    position2.pose.position.z = 0.85
     position2.pose.orientation.w = 1
-    # Position 3
-    position3 = geometry_msgs.msg.PoseStamped()
-    position3.pose.position.x = position1.pose.position.x 
-    position3.pose.position.y = position1.pose.position.y - 0.8
-    position3.pose.position.z = position1.pose.position.z
-    position3.pose.orientation.w = 1
-    #Add objects
+    
+    
     ur10_commander_ex1=MoveCommanderUr10()
     time.sleep(0.5)   
-  #  ur10_commander_ex1.add_object("box", position1.pose.position.x,
-                            #        position1.pose.position.y,
-                                #    position1.pose.position.z)
-  #  time.sleep(0.5)    
-  #  ur10_commander_ex1.add_object("mesh", position2.pose.position.x,
-           #                         position2.pose.position.y,
-             #                       position2.pose.position.z, filename_mesh= "/home/user/workspace/src/moveit_examples/exampleUR10/models/coffee_mug_120602a_ctr.stl")
-  #  time.sleep(0.5) 
-    #print ur10_commander_ex1.is_an_object("mesh")
-    
-    #print ur10_commander_ex1.is_an_object("box")
-    #print ur10_commander_ex1.get_object_pose("box")["box"]
-    #Pick and Place
-   # PickAndPlaceBox= PickAndPlace("box", position3) 
-    # time.sleep(0.5) 
-   # PickAndPlaceMesh  = PickAndPlace("mesh", position1)
-   # time.sleep(0.5)
-   # ur10_commander_ex1.remove_object("mesh")
-   # time.sleep(0.5)
-   # ur10_commander_ex1.remove_object("box")
-
-    dict_object={"box": position1, "mesh":position2}
+    dict_add_objects={"box": position1, "mesh":position2}
     filename_mesh= "/home/user/workspace/src/moveit_examples/exampleUR10/models/coffee_mug_120602a_ctr.stl"
-    for key in dict_object:
-        position=dict_object[key]
+    #Add objects
+    for key in dict_add_objects:
+        position= dict_add_objects[key]
         ur10_commander_ex1.add_object(key, position.pose.position.x,
                                     position.pose.position.y,
                                     position.pose.position.z,filename_mesh=filename_mesh)
-        #position_place=position
-        #position_place.pose.position.y -= 0.8
-       
-       # PickAndPlaceMesh  = PickAndPlace(key, position_place)
-        #time.sleep(0.5)
-       # ur10_commander_ex1.remove_object(key)
+        time.sleep(1)
+    #Move objects
+    print  ur10_commander_ex1.get_known_object_names()
+    list_move_objects=['box','mesh']
+    #list_move_objects=['box','orange__link'] ###NOT possible Which function should I use to attach the object?
+    for object in list_move_objects:
+        pose_pick= copy.deepcopy(ur10_commander_ex1.get_object_pose(object)[object])       
+        position_place= ur10_commander_ex1.pose_stamped(pose_pick)
+        position_place.pose.position.y = position_place.pose.position.y + 0.2
+        PickAndPlace_ex1  = PickAndPlace(object, position_place)
         time.sleep(1)
     
-    for key in dict_object:
-        position=dict_object[key]
-        position_place=position
-        position_place.pose.position.y -= 0.8        
-        PickAndPlaceMesh  = PickAndPlace(key, position_place)
-        time.sleep(1)
-       # ur10_commander_ex1.remove_object(key)
-        time.sleep(0.5)
-
-    for key in dict_object:        
-        ur10_commander_ex1.remove_object(key)
+    
+    #Remove objects
+    for object in list_move_objects:        
+        ur10_commander_ex1.remove_object(object)
         time.sleep(1)

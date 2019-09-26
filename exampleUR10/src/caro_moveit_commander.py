@@ -102,10 +102,29 @@ class MoveCommanderUr10 (object):
             is_known = object_name in self.scene_interface.get_known_object_names()
             return is_known
     
-    def get_object_pose (self, object_name):
+    def get_known_object_names(self):
 
+            object_names= self.scene_interface.get_known_object_names()
+
+            return object_names
+
+    def get_object_pose (self, object_name):
+            """get the object pose, returns pose message"""
             pose= self.scene_interface.get_object_poses([object_name])
-            return pose 
+            return pose
+
+    def pose_stamped(self,pose):
+        """convert a pose message to a pose_stamped message"""
+        pose_stamped = geometry_msgs.msg.PoseStamped()
+        pose_stamped.pose.position.x = pose.position.x
+        pose_stamped.pose.position.y = pose.position.y
+        pose_stamped.pose.position.z = pose.position.z
+        pose_stamped.pose.orientation.x = pose.orientation.x
+        pose_stamped.pose.orientation.y = pose.orientation.y
+        pose_stamped.pose.orientation.z = pose.orientation.z
+        pose_stamped.pose.orientation.w = pose.orientation.w
+
+        return pose_stamped
             
     def attach_object(self, object_name, timeout=4):
         touch_links = ["hand_base_attach"]
@@ -128,4 +147,16 @@ class MoveCommanderUr10 (object):
 
     def remove_object(self, object_name, timeout=4):
         self.scene_interface.remove_world_object(object_name)
-        
+
+
+if __name__ == '__main__':  
+    # Define the node
+    rospy.init_node("move_commander_ur10", anonymous=True)
+    
+    ur10_commander_ex1=MoveCommanderUr10()
+    #Move objects
+    print  ur10_commander_ex1.get_known_object_names()
+    list_move_objects=['box','mesh']
+    
+    pose_orange= ur10_commander_ex1.get_object_pose ("orange__link")
+    print pose_orange
