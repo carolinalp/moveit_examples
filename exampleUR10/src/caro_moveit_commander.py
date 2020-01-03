@@ -68,9 +68,10 @@ class MoveCommanderUr10 (object):
         
         self.group.execute(plan, wait=True)
 
-    def add_object(self, object_name, position_x, position_y, position_z, timeout=4, filename_mesh= ""):
+    def add_object(self, object_name, object_type, position_x, position_y, position_z, timeout=4, filename_mesh= ""):
         """Adding Objects to the Planning Scene
-        object_name is a string. Can be "box", "sphere", "cilinder" or "mesh"
+        oobject_name is a string, the name you want 
+        object_type is a string. Can be "box", "sphere", "cilinder" or "mesh"
         position_x, position_y, position_z are floats. The position in the
         planning scene where you want the box"""
         
@@ -81,18 +82,18 @@ class MoveCommanderUr10 (object):
         self.object_pose.pose.position.z = position_z
         self.object_pose.pose.orientation.w = 1.0
         
-        if  object_name == "box":
+        if  object_type == "box":
 
             self.scene_interface.add_box(object_name, self.object_pose, size =(0.1, 0.1, 0.1))
         
-        elif object_name =="sphere":
+        elif object_type =="sphere":
             self.scene_interface.add_sphere(object_name,  self.object_pose, radius = 0.1)
         
-        elif object_name =="mesh":
+        elif object_type =="mesh":
             self.scene_interface.add_mesh(object_name,  self.object_pose, self.filename_mesh, size = (0.003, 0.003, 0.003))	
 
         else:
-            rospy.logerr("Object_name not allowed, write \"box\", \"sphere\", \"cilinder\" or \"mesh\"")
+            rospy.logerr("Object_type not allowed, write \"box\", \"sphere\", \"cilinder\" or \"mesh\"")
             return
     
     def is_an_object(self,object_name):
@@ -129,17 +130,11 @@ class MoveCommanderUr10 (object):
     def attach_object(self, object_name, timeout=4):
         touch_links = ["hand_base_attach"]
         
-        self.object_name = object_name
-
-        if self.object_name == "box":
-            self.scene_interface.attach_box(self.eef_link, self.object_name, touch_links=touch_links)
-
-        elif self.object_name =="mesh":
-            self.scene_interface.attach_mesh(self.eef_link, self.object_name, self.filename_mesh, touch_links = touch_links)
-
-        else:
-            rospy.logerr("Object_name not allowed, write \"box\", \"sphere\", \"cilinder\" or \"mesh\"")
+        if not self.is_an_object(object_name):            
+            rospy.logerr("There is no object called " + object_name + " in the scene")
             return
+
+        self.scene_interface.attach_mesh(self.eef_link, object_name, touch_links = touch_links)
     
     def detach_object(self, timeout=4): 
 
@@ -160,3 +155,11 @@ if __name__ == '__main__':
     
     pose_orange= ur10_commander_ex1.get_object_pose ("orange__link")
     print pose_orange
+
+    # <!-- orange -->
+    # <include>
+    #   <uri>model://orange</uri>
+    #   <static>false</static>
+    #   <name>orange_1</name>
+    #   <pose>0.437121 0.288778 0.755000 0 0 0</pose>
+    # </include>

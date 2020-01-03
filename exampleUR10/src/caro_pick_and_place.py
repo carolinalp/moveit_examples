@@ -21,7 +21,7 @@ class PickAndPlace (object):
         self.position_pick = geometry_msgs.msg.PoseStamped()
 
         if self.ur10_commander.is_an_object(self.object_name):
-            self.position_pick = self.get_object_pose_stamped(object_name)
+            self.position_pick = self.get_object_pose_stamped()
             self.go_to_home_position()
             self.go_to_pregrasp_position(self.position_pick)
             time.sleep(0.5)
@@ -39,8 +39,8 @@ class PickAndPlace (object):
         else:
             rospy.logerr("There is no object called " + object_name + " in the scene")                            
         
-    def get_object_pose_stamped(self,object_name):
-        pose_object = self.ur10_commander.get_object_pose(object_name)[object_name] # ur10_commander_ex1.get_object_pose("box")["box"]
+    def get_object_pose_stamped(self):
+        pose_object = self.ur10_commander.get_object_pose(self.object_name)[self.object_name] # ur10_commander_ex1.get_object_pose("box")["box"]
         pose_stamped = self.ur10_commander.pose_stamped(pose_object)
         
         return pose_stamped
@@ -152,19 +152,19 @@ if __name__ == '__main__':
     
     ur10_commander_ex1=MoveCommanderUr10()
     time.sleep(0.5)   
-    dict_add_objects={"box": position1, "mesh":position2}
+    dict_add_objects={"box_1": ["box",position1]}#, "mug":["mesh",position2]}
     filename_mesh= "/home/user/workspace/src/moveit_examples/exampleUR10/models/coffee_mug_120602a_ctr.stl"
     #Add objects
     for key in dict_add_objects:
-        position= dict_add_objects[key]
-        ur10_commander_ex1.add_object(key, position.pose.position.x,
+        position= dict_add_objects[key][1]
+        ur10_commander_ex1.add_object(key, dict_add_objects[key][0],position.pose.position.x,
                                     position.pose.position.y,
                                     position.pose.position.z,filename_mesh=filename_mesh)
         time.sleep(1)
     #Move objects
     print  ur10_commander_ex1.get_known_object_names()
-    list_move_objects=['box','mesh']
-    #list_move_objects=['box','orange__link'] ###NOT possible Which function should I use to attach the object?
+    #list_move_objects=['box','mug']
+    list_move_objects=['box_1','orange__link'] ###NOT possible Which function should I use to attach the object?
     for object in list_move_objects:
         pose_pick= copy.deepcopy(ur10_commander_ex1.get_object_pose(object)[object])       
         position_place= ur10_commander_ex1.pose_stamped(pose_pick)
@@ -174,6 +174,6 @@ if __name__ == '__main__':
     
     
     #Remove objects
-    for object in list_move_objects:        
-        ur10_commander_ex1.remove_object(object)
+    for key in dict_add_objects:        
+        ur10_commander_ex1.remove_object(key)
         time.sleep(1)
